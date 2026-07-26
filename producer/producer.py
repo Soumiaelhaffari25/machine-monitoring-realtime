@@ -1,6 +1,7 @@
 """
 Simulateur de capteurs industriels.
-Génère des mesures réalistes (avec anomalies) et les publie sur Kafka en Avro.
+Vibration calibree sur le NASA Bearing Dataset (Set 2, Bearing 1).
+Genere : bruit normal, derives progressives (usure), pics brutaux.
 """
 
 import json
@@ -18,64 +19,76 @@ from confluent_kafka.serialization import SerializationContext, MessageField
 KAFKA_BOOTSTRAP = "localhost:9092"
 SCHEMA_REGISTRY_URL = "http://localhost:8081"
 TOPIC = "sensor-readings"
-
-# Les machines simulees et leurs capteurs
 MACHINES = ["machine-01", "machine-02", "machine-03"]
 
-# Pour chaque capteur : valeur normale moyenne, ecart-type du bruit, unite
+# Charge la calibration reelle issue du dataset NASA
+CALIB_PATH = Path(__file__).parent / "calibration.json"
+CALIB = json.loads(CALIB_PATH.read_text(encoding="utf-8"))
+VIB = CALIB["vibration"]
+
+# Capteurs : vibration calibree sur donnees reelles, les autres sur ordres de grandeur industriels
 SENSORS = {
-    "temperature": {"mean": 65.0, "noise": 2.0, "unit": "C"},
-    "vibration":   {"mean": 2.5,  "noise": 0.3, "unit": "mm/s"},
-    "pressure":    {"mean": 5.0,  "noise": 0.2, "unit": "bar"},
-    "current":     {"mean": 30.0, "noise": 1.5, "unit": "A"},
+    "vibration":   {"mean": VIB["normal_mean"], "noise": VIB["normal_std"],
+                    "anomaly_mean": VIB["anomaly_mean"], "unit": "g"},
+    "temperature": {"mean": 45.0, "noise": 1.5, "anomaly_mean": 85.0, "unit": "C"},
+    "pressure":    {"mean": 5.0,  "noise": 0.2, "anomaly_mean": 8.0,  "unit": "bar"},
+    "current":     {"mean": 30.0, "noise": 1.5, "anomaly_mean": 55.0, "unit": "A"},
 }
 
-ANOMALY_PROBABILITY = 0.04  # ~4% des mesures sont anormales
+# Etat de derive par (machine, capteur) : 0.0 = sain, 1.0 = pleinement degrade
+drift_state = {(m, s): 0.0 for m in MACHINES for s in SENSORS}
+
+ANOMALY_SPIKE_PROB = 0.02   # pic brutal ponctuel
+DRIFT_START_PROB = 0.001    # demarrage d'une derive progressive
+DRIFT_INCREMENT = 0.02      # vitesse de montee de la derive
 
 
 def load_schema() -> str:
-    """Charge le schema Avro depuis le fichier .avsc."""
-    schema_path = Path(__file__).parent / "schemas" / "reading.avsc"
-    return schema_path.read_text(encoding="utf-8")
+    return (Path(__file__).parent / "schemas" / "reading.avsc").read_text(encoding="utf-8")
 
 
 def make_reading(machine_id: str, sensor: str, cfg: dict) -> dict:
-    """Genere une mesure : normale la plupart du temps, parfois anormale."""
+    key = (machine_id, sensor)
+
+    # 1. Valeur de base = normale + bruit
     value = random.gauss(cfg["mean"], cfg["noise"])
 
-    # Injection d'anomalie : un pic brutal vers le haut
-    if random.random() < ANOMALY_PROBABILITY:
-        value = cfg["mean"] * random.uniform(1.5, 2.5)
+    # 2. Derive progressive : parfois une usure demarre, puis monte lentement
+    if drift_state[key] == 0.0 and random.random() < DRIFT_START_PROB:
+        drift_state[key] = 0.01  # amorce la derive
+    if drift_state[key] > 0.0:
+        drift_state[key] = min(1.0, drift_state[key] + DRIFT_INCREMENT)
+        # interpolation entre valeur normale et valeur degradee
+        target = cfg["anomaly_mean"]
+        value = cfg["mean"] + drift_state[key] * (target - cfg["mean"])
+        value += random.gauss(0, cfg["noise"] * (1 + drift_state[key] * 5))  # bruit croissant
+        if drift_state[key] >= 1.0 and random.random() < 0.1:
+            drift_state[key] = 0.0  # la panne "reset" (maintenance simulee)
+
+    # 3. Pic brutal ponctuel (independant de la derive)
+    elif random.random() < ANOMALY_SPIKE_PROB:
+        value = cfg["anomaly_mean"] * random.uniform(1.0, 1.5)
 
     return {
         "machine_id": machine_id,
         "sensor": sensor,
-        "value": round(value, 2),
+        "value": round(value, 4),
         "unit": cfg["unit"],
         "event_time": int(datetime.now(timezone.utc).timestamp() * 1000),
     }
 
 
 def delivery_report(err, msg):
-    """Callback appele apres chaque tentative d'envoi."""
     if err is not None:
         print(f"Echec envoi: {err}")
 
 
 def main():
-    # Client Schema Registry
     schema_registry = SchemaRegistryClient({"url": SCHEMA_REGISTRY_URL})
-
-    # Serialiseur Avro : valide chaque message contre le schema
-    avro_serializer = AvroSerializer(
-        schema_registry,
-        load_schema(),
-    )
-
-    # Producteur Kafka
+    avro_serializer = AvroSerializer(schema_registry, load_schema())
     producer = Producer({"bootstrap.servers": KAFKA_BOOTSTRAP})
 
-    print(f"Publication sur le topic '{TOPIC}'. Ctrl+C pour arreter.")
+    print(f"Publication sur '{TOPIC}'. Vibration calibree sur NASA Bearing Dataset. Ctrl+C pour arreter.")
     count = 0
 
     try:
@@ -83,30 +96,21 @@ def main():
             for machine_id in MACHINES:
                 for sensor, cfg in SENSORS.items():
                     reading = make_reading(machine_id, sensor, cfg)
-
-                    # Serialisation Avro (le message est valide ici)
                     serialized = avro_serializer(
-                        reading,
-                        SerializationContext(TOPIC, MessageField.VALUE),
+                        reading, SerializationContext(TOPIC, MessageField.VALUE)
                     )
-
-                    # Publication, cle = machine_id -> partitionnement
                     producer.produce(
-                        topic=TOPIC,
-                        key=machine_id,
-                        value=serialized,
-                        on_delivery=delivery_report,
+                        topic=TOPIC, key=machine_id,
+                        value=serialized, on_delivery=delivery_report,
                     )
                     count += 1
-
-            producer.poll(0)      # traite les callbacks en attente
+            producer.poll(0)
             print(f"{count} mesures envoyees", end="\r")
-            time.sleep(1)         # une salve par seconde
-
+            time.sleep(1)
     except KeyboardInterrupt:
         print("\nArret demande.")
     finally:
-        producer.flush()          # s'assure que tout est parti
+        producer.flush()
         print("Producteur ferme proprement.")
 
 

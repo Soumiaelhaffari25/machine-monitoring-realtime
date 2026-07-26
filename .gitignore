@@ -21,3 +21,6 @@ spark-warehouse/
 
 # Docker
 *.tmp
+
+# Datasets (trop volumineux pour git)
+data/

@@ -1,0 +1,9 @@
+{
+  "vibration": {
+    "source": "NASA Bearing Dataset Set 2, Bearing 1 (RMS accel en g)",
+    "normal_mean": 0.0777,
+    "normal_std": 0.0012,
+    "anomaly_mean": 0.2166,
+    "anomaly_std": 0.1149
+  }
+}
