@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+*.egg-info/
+
+# Environnement & secrets
+.env
+*.env
+
+# Checkpoints Spark & données locales
+checkpoints/
+spark-warehouse/
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# Docker
+*.tmp
