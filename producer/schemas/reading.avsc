@@ -1,0 +1,36 @@
+{
+  "type": "record",
+  "name": "SensorReading",
+  "namespace": "com.machinemonitoring",
+  "doc": "Une mesure unique provenant d'un capteur de machine industrielle",
+  "fields": [
+    {
+      "name": "machine_id",
+      "type": "string",
+      "doc": "Identifiant de la machine, ex. 'machine-01'"
+    },
+    {
+      "name": "sensor",
+      "type": "string",
+      "doc": "Type de capteur : temperature, vibration, pressure, current"
+    },
+    {
+      "name": "value",
+      "type": "double",
+      "doc": "Valeur mesurée"
+    },
+    {
+      "name": "unit",
+      "type": "string",
+      "doc": "Unite de mesure, ex. 'C', 'mm/s', 'bar', 'A'"
+    },
+    {
+      "name": "event_time",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      },
+      "doc": "Horodatage de la mesure en millisecondes depuis epoch"
+    }
+  ]
+}
