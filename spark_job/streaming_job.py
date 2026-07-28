@@ -21,7 +21,7 @@ from pyspark.sql.avro.functions import from_avro
 
 sys.path.insert(0, str(Path(__file__).parent))
 from rules import compute_anomaly_score
-
+from mongo_sink import write_anomalies_to_mongo
 # --- Configuration ---
 KAFKA_BOOTSTRAP = "localhost:9092"
 TOPIC = "sensor-readings"
@@ -78,7 +78,7 @@ def main():
     windowed = (valid
         .withWatermark("event_time", "30 seconds")
         .groupBy(
-            window(col("event_time"), "1 minute", "20 seconds"),
+            window(col("event_time"), "1 minute"),
             col("machine_id"), col("sensor"),
         )
         .agg(
@@ -99,11 +99,10 @@ def main():
 
     # 6. Deux sorties, CHACUNE avec son propre checkpoint
 
-    # Sortie A : anomalies -> console (checkpoint dedie)
+    # Sortie A : anomalies -> MongoDB (via foreachBatch et le pont mongo_sink)
     q_anomalies = (anomalies.writeStream
-                   .format("console")
+                   .foreachBatch(write_anomalies_to_mongo)
                    .outputMode("update")
-                   .option("truncate", "false")
                    .option("checkpointLocation", f"{CHECKPOINT_BASE}/anomalies")
                    .start())
 
