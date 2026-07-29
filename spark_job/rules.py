@@ -22,11 +22,13 @@ PHYSICAL_THRESHOLDS = {
 
 # Seuil du Z-score : au-dela de 3 ecarts-types, la valeur est statistiquement anormale
 ZSCORE_THRESHOLD = 3.0
+# Marge de derive : valeur depassant la moyenne de fenetre de +30%
+DRIFT_RATIO = 1.30
 
-# Poids de chaque regle dans le score final (le cahier donne "eleve" aux deux)
-WEIGHT_PHYSICAL = 0.5
-WEIGHT_ZSCORE = 0.5
-
+# Poids de chaque regle dans le score final
+WEIGHT_PHYSICAL = 0.4
+WEIGHT_ZSCORE = 0.4
+WEIGHT_DRIFT = 0.2
 
 def rule_physical_threshold(df: DataFrame) -> DataFrame:
     """
@@ -62,22 +64,54 @@ def rule_zscore(df: DataFrame) -> DataFrame:
         "signal_zscore",
         when(sabs(col("zscore")) > ZSCORE_THRESHOLD, lit(1.0)).otherwise(lit(0.0)),
     )
+    
+def rule_drift(df: DataFrame) -> DataFrame:
+    """
+    Regle de derive (tendance croissante / usure).
+    Se declenche si la derniere valeur monte nettement au-dessus de la
+    moyenne de fenetre (>+30%), MAIS reste sous le seuil physique
+    (sinon c'est la regle du seuil qui gere).
+    Necessite 'mu' (moyenne de fenetre) et 'threshold' (seuil physique).
+    Ajoute la colonne 'signal_drift'.
+    """
+    # Condition : value > mu * 1.30  ET  value <= seuil physique
+    is_drift = (
+        (col("mu").isNotNull())
+        & (col("mu") > 0)
+        & (col("value") > col("mu") * DRIFT_RATIO)
+        & (col("value") <= col("threshold"))
+    )
+    return df.withColumn(
+        "signal_drift",
+        when(is_drift, lit(1.0)).otherwise(lit(0.0)),
+    )
 
 
 def compute_anomaly_score(df: DataFrame) -> DataFrame:
     """
     Applique toutes les regles et calcule le score d'anomalie pondere.
     score = somme(poids * signal) pour chaque regle.
-    Ajoute 'anomaly_score' et 'is_anomaly' (True si score > 0).
+    Ajoute 'anomaly_score', 'is_anomaly' et 'rule' (regle principale declenchee).
     """
-    df = rule_physical_threshold(df)
-    df = rule_zscore(df)
+    df = rule_physical_threshold(df)   # cree 'threshold' et 'signal_physical'
+    df = rule_zscore(df)               # cree 'zscore' et 'signal_zscore'
+    df = rule_drift(df)                # cree 'signal_drift' (utilise 'threshold')
 
     score = (
         WEIGHT_PHYSICAL * col("signal_physical")
         + WEIGHT_ZSCORE * col("signal_zscore")
+        + WEIGHT_DRIFT * col("signal_drift")
     )
 
-    return df.withColumn("anomaly_score", score).withColumn(
+    df = df.withColumn("anomaly_score", score).withColumn(
         "is_anomaly", col("anomaly_score") > 0
     )
+
+    # Regle principale declenchee (pour le camembert 'anomalies by rule')
+    rule = (
+        when(col("signal_physical") == 1.0, lit("Seuil physique"))
+        .when(col("signal_zscore") == 1.0, lit("Z-score"))
+        .when(col("signal_drift") == 1.0, lit("Derive"))
+        .otherwise(lit("Aucune"))
+    )
+    return df.withColumn("rule", rule)

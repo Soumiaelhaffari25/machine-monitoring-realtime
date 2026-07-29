@@ -94,7 +94,8 @@ def main():
         col("window.start").alias("debut"),
         col("machine_id"), col("sensor"), col("value"),
         col("mu"), col("sigma"), col("zscore"),
-        col("signal_physical"), col("signal_zscore"), col("anomaly_score"),
+        col("signal_physical"), col("signal_zscore"), col("signal_drift"),
+        col("anomaly_score"), col("rule"),
     )
 
     # 6. Deux sorties, CHACUNE avec son propre checkpoint
