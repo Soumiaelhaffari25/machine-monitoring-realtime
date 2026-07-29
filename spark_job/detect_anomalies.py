@@ -58,7 +58,7 @@ decoded = (df.select(expr("substring(value, 6, length(value)-5)").alias("avro_va
 windowed = (decoded
     .withWatermark("event_time", "30 seconds")
     .groupBy(
-        window(col("event_time"), "1 minute", "20 seconds"),
+        window(col("event_time"), "1 minute"),
         col("machine_id"), col("sensor"),
     )
     .agg(

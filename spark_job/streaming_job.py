@@ -21,7 +21,7 @@ from pyspark.sql.avro.functions import from_avro
 
 sys.path.insert(0, str(Path(__file__).parent))
 from rules import compute_anomaly_score
-from mongo_sink import write_anomalies_to_mongo
+from mongo_sink import write_anomalies_to_mongo, write_readings_to_mongo
 # --- Configuration ---
 KAFKA_BOOTSTRAP = "localhost:9092"
 TOPIC = "sensor-readings"
@@ -114,6 +114,13 @@ def main():
              .option("checkpointLocation", f"{CHECKPOINT_BASE}/dlq")
              .outputMode("append")
              .start())
+    
+    # Sortie C : toutes les mesures -> MongoDB collection 'readings'
+    q_readings = (valid.writeStream
+                  .foreachBatch(write_readings_to_mongo)
+                  .outputMode("append")
+                  .option("checkpointLocation", f"{CHECKPOINT_BASE}/readings")
+                  .start())
 
     print(">>> Pipeline actif : anomalies -> console | invalides -> dead-letter")
     print(">>> Checkpoints dans le dossier 'checkpoints/'. Ctrl+C pour arreter.")

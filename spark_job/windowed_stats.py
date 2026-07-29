@@ -57,11 +57,11 @@ decoded = (df.select(expr("substring(value, 6, length(value)-5)").alias("avro_va
 # event_time est deja un TIMESTAMP (grace au logicalType timestamp-millis du schema Avro)
 readings = decoded
 
-# Agregation fenetree glissante : fenetre de 1 minute, glissant toutes les 20 secondes
+# Agregation fenetree : fenetre de 1 minute
 windowed = (readings
     .withWatermark("event_time", "30 seconds")
     .groupBy(
-        window(col("event_time"), "1 minute", "20 seconds"),
+        window(col("event_time"), "1 minute"),
         col("machine_id"),
         col("sensor"),
     )
