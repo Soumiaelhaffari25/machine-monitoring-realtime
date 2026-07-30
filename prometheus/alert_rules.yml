@@ -1,0 +1,32 @@
+groups:
+  - name: pipeline_alerts
+    rules:
+      # Alerte 1 : un service ne repond plus (producer, spark, kafka, mongodb)
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.job }} indisponible"
+          description: "Le service {{ $labels.job }} ne repond plus depuis 1 minute."
+
+      # Alerte 2 : messages corrompus en hausse dans la DLQ
+      - alert: DeadLetterQueueGrowing
+        expr: kafka_topic_partition_current_offset{topic="dead-letter"} > 5
+        for: 30s
+        labels:
+          severity: warning
+        annotations:
+          summary: "Messages corrompus detectes"
+          description: "Le topic dead-letter contient {{ $value }} messages corrompus."
+
+      # Alerte 3 : le producteur n'envoie plus de donnees
+      - alert: NoDataIngested
+        expr: sum(rate(producer_messages_sent_total[2m])) == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Aucune donnee ingeree"
+          description: "Le producteur n'envoie plus de mesures depuis 1 minute."
