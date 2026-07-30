@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spark-job
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: spark-job
+  template:
+    metadata:
+      labels:
+        app: spark-job
+    spec:
+      enableServiceLinks: false
+      containers:
+        - name: spark-job
+          image: machine-monitoring/spark-job:v1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8002
+          env:
+            - name: KAFKA_BOOTSTRAP
+              value: "my-cluster-kafka-bootstrap.kafka.svc.cluster.local:9092"
+            - name: MONGO_URI
+              value: "mongodb://mongodb:27017"
+            - name: SCHEMA_PATH
+              value: "/app/schemas/reading.avsc"

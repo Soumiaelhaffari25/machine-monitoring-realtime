@@ -4,11 +4,12 @@ Pont entre Spark Streaming et MongoDB.
 - write_readings_to_mongo  : ecrit toutes les mesures (insert, historique complet)
 Instrumente avec des metriques Prometheus (anomalies detectees, mesures traitees).
 """
+import os
 from pymongo import MongoClient
 from prometheus_client import Counter
 
 # --- Configuration MongoDB ---
-MONGO_URI = "mongodb://localhost:27017"
+MONGO_URI = os.environ.get("MONGO_URI", "mongodb://localhost:27017")
 DB_NAME = "machine_monitoring"
 ANOMALIES_COLLECTION = "anomalies"
 READINGS_COLLECTION = "readings"

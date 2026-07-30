@@ -7,13 +7,7 @@ import os
 import sys
 from pathlib import Path
 
-os.environ["JAVA_HOME"] = r"C:\Program Files\Eclipse Adoptium\jdk-17.0.19.10-hotspot"
-os.environ["HADOOP_HOME"] = r"C:\hadoop"
-os.environ["PATH"] = os.environ["HADOOP_HOME"] + r"\bin;" + os.environ["PATH"]
-os.environ["PYSPARK_PYTHON"] = sys.executable
-os.environ["PYSPARK_DRIVER_PYTHON"] = sys.executable
 os.environ["PYTHONUTF8"] = "1"
-os.environ["SPARK_LOCAL_IP"] = "127.0.0.1"
 
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, expr, window, avg, stddev, last, count
@@ -27,7 +21,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from rules import compute_anomaly_score
 from mongo_sink import write_anomalies_to_mongo, write_readings_to_mongo
 # --- Configuration ---
-KAFKA_BOOTSTRAP = "localhost:9092"
+KAFKA_BOOTSTRAP = os.environ.get("KAFKA_BOOTSTRAP", "localhost:9092")
 TOPIC = "sensor-readings"
 DLQ_TOPIC = "dead-letter"
 CHECKPOINT_BASE = "checkpoints"   # dossier racine des checkpoints
@@ -35,17 +29,24 @@ PACKAGES = ",".join([
     "org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.1",
     "org.apache.spark:spark-avro_2.12:3.5.1",
 ])
-SCHEMA_STR = (Path(__file__).parent.parent / "producer" / "schemas" / "reading.avsc").read_text(encoding="utf-8")
+
+# Chemin du schema : variable d'env en priorite (K8s), sinon recherche locale
+SCHEMA_PATH = os.environ.get("SCHEMA_PATH")
+if not SCHEMA_PATH:
+    # Recherche pour l'execution locale hors conteneur
+    candidates = [
+        Path(__file__).parent / "schemas" / "reading.avsc",
+        Path(__file__).parent.parent / "producer" / "schemas" / "reading.avsc",
+    ]
+    SCHEMA_PATH = next((str(p) for p in candidates if p.exists()), str(candidates[0]))
+SCHEMA_STR = Path(SCHEMA_PATH).read_text(encoding="utf-8")
 
 
 def build_spark():
     return (SparkSession.builder
             .appName("machine-monitoring-streaming")
             .master("local[*]")
-            .config("spark.jars.packages", PACKAGES)
             .config("spark.sql.shuffle.partitions", "4")
-            .config("spark.driver.host", "127.0.0.1")
-            .config("spark.driver.bindAddress", "127.0.0.1")
             .getOrCreate())
 
 
