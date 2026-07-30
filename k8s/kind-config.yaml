@@ -1,0 +1,12 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: machine-monitoring
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      # Grafana du cluster sur localhost:3001 (3000 est pris par docker-compose)
+      - containerPort: 30000
+        hostPort: 3001
+      # Prometheus du cluster sur localhost:9091 (9090 est pris)
+      - containerPort: 30001
+        hostPort: 9091
