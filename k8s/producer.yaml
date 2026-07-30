@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: producer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: producer
+  template:
+    metadata:
+      labels:
+        app: producer
+    spec:
+      enableServiceLinks: false
+      containers:
+        - name: producer
+          image: machine-monitoring/producer:v1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8001
+          env:
+            - name: KAFKA_BOOTSTRAP
+              value: "my-cluster-kafka-bootstrap.kafka.svc.cluster.local:9092"
+            - name: SCHEMA_REGISTRY_URL
+              value: "http://schemaregistry:8081"
