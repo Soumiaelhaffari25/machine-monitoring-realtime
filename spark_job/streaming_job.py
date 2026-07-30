@@ -19,6 +19,10 @@ from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, expr, window, avg, stddev, last, count
 from pyspark.sql.avro.functions import from_avro
 
+from prometheus_client import start_http_server, Counter
+
+SPARK_DLQ = Counter("spark_dlq_total", "Nombre total de messages corrompus (DLQ)")
+
 sys.path.insert(0, str(Path(__file__).parent))
 from rules import compute_anomaly_score
 from mongo_sink import write_anomalies_to_mongo, write_readings_to_mongo
@@ -48,6 +52,11 @@ def build_spark():
 def main():
     spark = build_spark()
     spark.sparkContext.setLogLevel("WARN")
+    
+    # Serveur de metriques Prometheus pour le job Spark
+    start_http_server(8002)
+    print(">>> Metriques Spark exposees sur http://localhost:8002/metrics")
+    
     print("\n>>> Job de streaming complet demarre...")
 
     # 1. Lecture Kafka

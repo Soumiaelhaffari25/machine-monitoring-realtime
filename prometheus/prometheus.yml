@@ -1,0 +1,24 @@
+# Configuration Prometheus - Machine Monitoring
+global:
+  scrape_interval: 15s        # scrape toutes les 15 secondes
+  evaluation_interval: 15s
+
+scrape_configs:
+  # Le producteur expose ses metriques sur le port 8001
+  - job_name: "producer"
+    static_configs:
+      - targets: ["host.docker.internal:8001"]
+  # Le job Spark expose ses metriques sur le port 8002
+  - job_name: "spark"
+    static_configs:
+      - targets: ["host.docker.internal:8002"]
+
+  # Kafka exporter (consumer lag, topics, partitions)
+  - job_name: "kafka"
+    static_configs:
+      - targets: ["kafka-exporter:9308"]
+
+  # MongoDB exporter (etat de la base)
+  - job_name: "mongodb"
+    static_configs:
+      - targets: ["mongo-exporter:9216"]

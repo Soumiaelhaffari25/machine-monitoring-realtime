@@ -1,15 +1,29 @@
 """
 Pont entre Spark Streaming et MongoDB.
-La fonction write_anomalies_to_mongo() est appelee par foreachBatch :
-pour chaque lot (batch) d'anomalies, elle insere les lignes dans MongoDB.
+- write_anomalies_to_mongo : ecrit les anomalies (upsert, pas de doublon)
+- write_readings_to_mongo  : ecrit toutes les mesures (insert, historique complet)
+Instrumente avec des metriques Prometheus (anomalies detectees, mesures traitees).
 """
 from pymongo import MongoClient
+from prometheus_client import Counter
 
 # --- Configuration MongoDB ---
 MONGO_URI = "mongodb://localhost:27017"
 DB_NAME = "machine_monitoring"
 ANOMALIES_COLLECTION = "anomalies"
 READINGS_COLLECTION = "readings"
+
+# --- Metriques Prometheus ---
+SPARK_ANOMALIES = Counter(
+    "spark_anomalies_total",
+    "Nombre total d'anomalies detectees",
+    ["machine_id", "sensor"],
+)
+SPARK_READINGS = Counter(
+    "spark_readings_processed_total",
+    "Nombre total de mesures traitees",
+)
+
 
 def write_anomalies_to_mongo(batch_df, batch_id):
     """
@@ -32,17 +46,21 @@ def write_anomalies_to_mongo(batch_df, batch_id):
                 "sensor": r.get("sensor"),
                 "debut": r.get("debut"),
             }
-            # replace_one avec upsert : remplace si existe, insere sinon
             collection.replace_one(key, r, upsert=True)
+            # Metrique : on compte chaque anomalie
+            SPARK_ANOMALIES.labels(
+                machine_id=r.get("machine_id", "?"),
+                sensor=r.get("sensor", "?"),
+            ).inc()
         print(f">>> Batch {batch_id} : {len(rows)} anomalie(s) upsert dans MongoDB")
     finally:
         client.close()
-        
+
+
 def write_readings_to_mongo(batch_df, batch_id):
     """
     Ecrit un lot de mesures brutes dans MongoDB (collection 'readings').
-    Contrairement aux anomalies, on insere tout (historique complet des capteurs).
-    Sert a tracer les courbes de capteurs dans le temps.
+    On insere tout (historique complet des capteurs) pour tracer les courbes.
     """
     if batch_df.isEmpty():
         return
@@ -53,6 +71,8 @@ def write_readings_to_mongo(batch_df, batch_id):
     try:
         collection = client[DB_NAME][READINGS_COLLECTION]
         collection.insert_many(rows)
+        # Metrique : on compte les mesures traitees
+        SPARK_READINGS.inc(len(rows))
         print(f">>> Batch {batch_id} : {len(rows)} mesure(s) ecrite(s) dans readings")
     finally:
         client.close()

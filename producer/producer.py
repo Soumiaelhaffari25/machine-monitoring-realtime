@@ -14,6 +14,7 @@ from confluent_kafka import Producer
 from confluent_kafka.schema_registry import SchemaRegistryClient
 from confluent_kafka.schema_registry.avro import AvroSerializer
 from confluent_kafka.serialization import SerializationContext, MessageField
+from prometheus_client import start_http_server, Counter, Gauge
 
 # --- Configuration ---
 KAFKA_BOOTSTRAP = "localhost:9092"
@@ -41,6 +42,20 @@ drift_state = {(m, s): 0.0 for m in MACHINES for s in SENSORS}
 ANOMALY_SPIKE_PROB = 0.02   # pic brutal ponctuel
 DRIFT_START_PROB = 0.001    # demarrage d'une derive progressive
 DRIFT_INCREMENT = 0.02      # vitesse de montee de la derive
+
+# --- Metriques Prometheus ---
+# Compteur : nombre total de messages envoyes (ne fait qu'augmenter)
+MESSAGES_SENT = Counter(
+    "producer_messages_sent_total",
+    "Nombre total de mesures envoyees a Kafka",
+    ["machine_id", "sensor"],   # on peut ventiler par machine et capteur
+)
+# Jauge : nombre d'anomalies injectees (peut monter et descendre)
+ANOMALIES_INJECTED = Counter(
+    "producer_anomalies_injected_total",
+    "Nombre d'anomalies volontairement injectees",
+    ["sensor"],
+)
 
 
 def load_schema() -> str:
@@ -91,6 +106,10 @@ def main():
     print(f"Publication sur '{TOPIC}'. Vibration calibree sur NASA Bearing Dataset. Ctrl+C pour arreter.")
     count = 0
 
+    # Demarre le serveur de metriques Prometheus sur le port 8001
+    start_http_server(8001)
+    print("Metriques Prometheus exposees sur http://localhost:8001/metrics")  
+    
     try:
         while True:
             for machine_id in MACHINES:
@@ -104,6 +123,7 @@ def main():
                         value=serialized, on_delivery=delivery_report,
                     )
                     count += 1
+                    MESSAGES_SENT.labels(machine_id=machine_id, sensor=sensor).inc()
             producer.poll(0)
             print(f"{count} mesures envoyees", end="\r")
             time.sleep(1)
