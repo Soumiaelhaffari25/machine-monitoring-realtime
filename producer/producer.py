@@ -3,7 +3,7 @@ Simulateur de capteurs industriels.
 Vibration calibree sur le NASA Bearing Dataset (Set 2, Bearing 1).
 Genere : bruit normal, derives progressives (usure), pics brutaux.
 """
-
+import os
 import json
 import random
 import time
@@ -17,8 +17,8 @@ from confluent_kafka.serialization import SerializationContext, MessageField
 from prometheus_client import start_http_server, Counter, Gauge
 
 # --- Configuration ---
-KAFKA_BOOTSTRAP = "localhost:9092"
-SCHEMA_REGISTRY_URL = "http://localhost:8081"
+KAFKA_BOOTSTRAP = os.environ.get("KAFKA_BOOTSTRAP", "localhost:9092")
+SCHEMA_REGISTRY_URL = os.environ.get("SCHEMA_REGISTRY_URL", "http://localhost:8081")
 TOPIC = "sensor-readings"
 MACHINES = ["machine-01", "machine-02", "machine-03"]
 
