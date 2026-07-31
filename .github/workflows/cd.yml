@@ -1,0 +1,60 @@
+name: CD
+
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  publish-images:
+    name: Publier les images Docker
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      - name: Connexion a GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build et push image producteur
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: producer/Dockerfile
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/producer:latest
+
+      - name: Build et push image job Spark
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: spark_job/Dockerfile
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/spark-job:latest
+
+  deploy:
+    name: Deployer sur Kubernetes
+    runs-on: ubuntu-latest
+    needs: publish-images
+    if: false     # DESACTIVE : necessite un cluster distant accessible depuis internet
+
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      - name: Configurer kubectl
+        run: echo "Configuration de kubectl avec le kubeconfig du cluster distant"
+
+      - name: Deployer 
+        run: |
+          echo "kubectl apply -f k8s/mongodb.yaml"
+          echo "kubectl apply -f k8s/producer.yaml"
+          echo "kubectl apply -f k8s/spark-job.yaml"
