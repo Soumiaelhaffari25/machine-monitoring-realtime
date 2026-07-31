@@ -32,7 +32,7 @@ jobs:
       # 4. Verifier la qualite du code (linting)
       - name: Lint avec flake8
         run: |
-          flake8 spark_job/rules_logic.py tests/ --max-line-length=120 --count --statistics
+          flake8 spark_job/rules_logic.py tests/ --count --statistics
 
       # 5. Lancer les tests
       - name: Tests avec pytest
