@@ -2,8 +2,6 @@
 
 > Pipeline de données temps réel pour la détection d'anomalies sur des machines industrielles, de l'ingestion des capteurs jusqu'aux tableaux de bord, déployé sur Kubernetes.
 
-![CI](https://github.com/Soumiaelhaffari25/machine-monitoring-realtime/actions/workflows/ci.yml/badge.svg)
-![CD](https://github.com/Soumiaelhaffari25/machine-monitoring-realtime/actions/workflows/cd.yml/badge.svg)
 
 ---
 
@@ -228,31 +226,6 @@ machine-monitoring-realtime/
 ├── requirements.txt
 └── .flake8
 ```
-
----
-
-## 📊 Aperçu des dashboards
-
-<!-- Décommente après avoir ajouté tes captures dans un dossier docs/ :
-### Dashboard métier
-![Dashboard métier](docs/dashboard_business.png)
-
-### Dashboard technique
-![Dashboard technique](docs/dashboard_technical.png)
--->
-
-*[À COMPLÉTER : insérer les captures des dashboards métier et technique]*
-
----
-
-## 🧭 Défis techniques relevés
-
-Quelques problèmes concrets résolus au cours du projet, illustrant la démarche de débogage :
-- **Compatibilité des versions** (Python 3.11 / Java 17 / Spark 3.5) pour éviter les erreurs de sérialisation.
-- **Collision de variables Kubernetes/Confluent** : le Schema Registry crashait car Kubernetes injecte une variable `SCHEMA_REGISTRY_PORT` interprétée à tort par Confluent — résolu via `enableServiceLinks: false`.
-- **Connecteurs Kafka en conteneur** : pré-intégration des JARs Spark-Kafka dans l'image pour éviter un téléchargement au démarrage.
-- **Déduplication** : passage d'un `insert` à un `upsert` pour éliminer les anomalies dupliquées entre fenêtres.
-
 ---
 
 ## 👤 Auteur
