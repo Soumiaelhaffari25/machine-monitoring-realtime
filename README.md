@@ -1,4 +1,4 @@
-# 🏭 Machine Monitoring — Maintenance Prédictive Temps Réel
+# 🏭 Machine Monitoring En Temps Réel
 
 > Pipeline de données temps réel pour la détection d'anomalies sur des machines industrielles, de l'ingestion des capteurs jusqu'aux tableaux de bord, déployé sur Kubernetes.
 
