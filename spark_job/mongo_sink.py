@@ -1,9 +1,3 @@
-"""
-Pont entre Spark Streaming et MongoDB.
-- write_anomalies_to_mongo : ecrit les anomalies (upsert, pas de doublon)
-- write_readings_to_mongo  : ecrit toutes les mesures (insert, historique complet)
-Instrumente avec des metriques Prometheus (anomalies detectees, mesures traitees).
-"""
 import os
 from pymongo import MongoClient
 from prometheus_client import Counter
