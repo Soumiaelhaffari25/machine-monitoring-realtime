@@ -1,4 +1,3 @@
-"""Mini-test : verifie que Spark demarre avec Java 17 et winutils."""
 import os
 import sys
 
