@@ -1,8 +1,3 @@
-"""
-Simulateur de capteurs industriels.
-Vibration calibree sur le NASA Bearing Dataset (Set 2, Bearing 1).
-Genere : bruit normal, derives progressives (usure), pics brutaux.
-"""
 import os
 import json
 import random
