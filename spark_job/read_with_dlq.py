@@ -1,10 +1,3 @@
-"""
-Palier P4 : Dead Letter Queue.
-Decode l'Avro en mode PERMISSIVE : un message corrompu devient null au lieu de crasher.
-On separe alors deux flux :
-  - valides   -> affiches (plus tard : traitement normal)
-  - invalides -> rediriges vers le topic Kafka 'dead-letter'
-"""
 import os
 import sys
 from pathlib import Path
