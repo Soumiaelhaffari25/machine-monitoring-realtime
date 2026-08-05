@@ -1,7 +1,3 @@
-"""
-Palier P6 : applique le moteur de regles sur le flux fenetre.
-Affiche les anomalies detectees (seuil physique + Z-score) en temps reel.
-"""
 import os
 import sys
 from pathlib import Path
