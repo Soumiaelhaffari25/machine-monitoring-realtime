@@ -1,10 +1,3 @@
-"""
-Extrait les statistiques reelles de vibration du NASA Bearing Dataset (Set 2).
-Calcule le RMS par fichier pour Bearing 1 (celui qui tombe en panne),
-puis derive les plages 'normal' (debut) et 'anomalie' (fin de vie).
-Sauvegarde le resultat dans calibration.json pour calibrer le simulateur.
-"""
-
 import json
 from pathlib import Path
 
