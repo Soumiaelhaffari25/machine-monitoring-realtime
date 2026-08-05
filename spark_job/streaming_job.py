@@ -1,8 +1,3 @@
-"""
-Job Spark Structured Streaming complet - Phase 2 assemblee.
-Pipeline : Kafka -> decodage Avro -> DLQ -> fenetres -> moteur de regles -> anomalies.
-Checkpoints actifs pour la garantie exactly-once (reprise apres crash).
-"""
 import os
 import sys
 from pathlib import Path
