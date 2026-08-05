@@ -1,8 +1,3 @@
-"""
-Palier P2 : lire le flux Kafka avec Spark et afficher les messages bruts.
-Les messages sont encore en Avro binaire -> illisibles, c'est normal.
-But : valider que Spark parle bien a Kafka.
-"""
 import os
 import sys
 
