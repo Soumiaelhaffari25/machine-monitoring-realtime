@@ -1,6 +1,3 @@
-"""
-Palier P3 : desérialiser l'Avro Confluent et afficher les vraies valeurs.
-"""
 import os
 import sys
 from pathlib import Path
