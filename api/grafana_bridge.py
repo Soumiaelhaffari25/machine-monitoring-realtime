@@ -1,7 +1,3 @@
-"""
-Pont entre MongoDB et Grafana.
-Expose les anomalies stockees dans MongoDB via une API JSON.
-"""
 from datetime import datetime
 from fastapi import FastAPI
 from pymongo import MongoClient
