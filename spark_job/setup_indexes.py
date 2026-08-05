@@ -1,9 +1,3 @@
-"""
-Cree les index MongoDB :
-  - Index TTL sur 'readings' : purge auto des mesures de plus de 1 heure
-  - Index de performance sur 'readings' et 'anomalies'
-A lancer une fois (ou quand on veut (re)configurer les index).
-"""
 from pymongo import MongoClient, ASCENDING, DESCENDING
 
 client = MongoClient("mongodb://localhost:27017")
