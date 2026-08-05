@@ -1,13 +1,3 @@
-"""
-Moteur de detection par regles statistiques (sans Machine Learning).
-Chaque regle est une fonction pure : elle prend un DataFrame et ajoute
-une colonne de signal (1 = regle declenchee, 0 = normale).
-Les signaux ponderes forment un score d'anomalie final.
-
-Regles implementees :
-  - seuil physique : valeur au-dela d'une borne critique connue
-  - Z-score        : ecart > 3 sigma de la moyenne glissante
-"""
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col, when, abs as sabs, lit
 
