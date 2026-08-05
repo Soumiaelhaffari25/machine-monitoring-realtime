@@ -1,9 +1,3 @@
-"""
-Injecteur de messages corrompus, pour tester la Dead Letter Queue.
-Envoie directement dans 'sensor-readings' des octets qui NE respectent PAS
-le format Avro attendu. Le job Spark doit les rediriger vers 'dead-letter'
-sans crasher.
-"""
 from confluent_kafka import Producer
 
 KAFKA_BOOTSTRAP = "localhost:9092"
