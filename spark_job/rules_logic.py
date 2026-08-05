@@ -1,9 +1,3 @@
-"""
-Logique metier pure des regles de detection (sans Spark).
-Ces fonctions contiennent les decisions, testables rapidement.
-Elles sont utilisees par rules.py (cote Spark) et par les tests.
-"""
-
 PHYSICAL_THRESHOLDS = {
     "temperature": 90.0,
     "vibration": 0.20,
